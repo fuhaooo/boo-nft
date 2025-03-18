@@ -27,13 +27,12 @@ import {
 
 // Type definitions for watchAsset function
 type WatchAssetParams = {
-  type: 'ERC20' | 'ERC721' | 'ERC1155';
+  type: 'ERC20';
   options: {
     address: string;
     symbol?: string;
     decimals?: number;
     image?: string;
-    tokenId?: string;
   };
 };
 
@@ -74,6 +73,8 @@ const NFT_CONTRACT_ADDRESS = "0x06654B8F8B7B4707836dd28260c13a59fFEa67D3";
 export default function Home() {
   // Get active wallet account
   const account = useActiveAccount();
+  
+  // State for fireworks effect
 
   // Define chain and contract
   const chain = defineChain(monadTestnet);
@@ -120,19 +121,45 @@ export default function Home() {
   }, [account]);
 
   return (
-    <main className="min-h-[100vh] bg-gradient-to-br from-purple-900 to-indigo-800 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full bg-zinc-900 rounded-xl overflow-hidden shadow-2xl">
+    <main className="min-h-[100vh] bg-gradient-to-br from-purple-900 to-indigo-800 flex items-center justify-center p-4 relative">
+      {/* Background Image */}
+      <div className="fixed inset-0 z-0 opacity-10">
+        <Image 
+          src="/1.png" 
+          alt="Boo Background" 
+          fill
+          style={{ objectFit: 'cover' }}
+          quality={100}
+        />
+      </div>
+      
+      <div className="max-w-4xl w-full bg-zinc-900 rounded-xl overflow-hidden shadow-2xl relative z-10">
+        {/* Twitter Button in top right corner */}
+        <div className="absolute top-4 right-4 z-20">
+          <a 
+            href="https://x.com/Alfredfuuu" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 py-2 px-4 bg-[#1DA1F2] hover:bg-[#1a91da] text-white rounded-full transition-colors shadow-lg text-sm"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="white">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+            Follow @Alfredfuuu
+          </a>
+        </div>
         {/* Header - NFT Image and Connect Wallet */}
         <div className="p-6 md:p-8 flex flex-col md:flex-row gap-8 items-center">
           <div className="w-full md:w-1/2 flex justify-center">
             <div className="w-full max-w-[320px] aspect-square rounded-lg overflow-hidden">
               {contractMetadata?.image ? (
-                <MediaRenderer
-                  client={client}
-                  src={contractMetadata?.image}
-                  alt={contractMetadata?.name || "Boo NFT"}
-                  className="w-full h-full object-cover"
-                />
+                <div className="w-full h-full">
+                  <MediaRenderer
+                    client={client}
+                    src={contractMetadata?.image}
+                    alt={contractMetadata?.name || "Boo NFT"}
+                  />
+                </div>
               ) : (
                 <Image
                   src="/boo-nft.png"
@@ -153,11 +180,10 @@ export default function Home() {
               {isLoadingMetadata ? "Loading..." : contractMetadata?.description || "A spooky NFT collection on Monad Testnet"}
             </p>
 
-            <div className="mt-2">
+            <div className="mt-2 flex justify-center">
               <ConnectButton
                 client={client}
                 chain={chain}
-                className="w-full py-3 text-lg bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all duration-200 shadow-lg"
                 appMetadata={{
                   name: "Boo NFT Minting",
                   url: "https://boo-nft.vercel.app",
@@ -205,86 +231,106 @@ export default function Home() {
             <div className="bg-green-900/30 border border-green-500 rounded-lg p-4 mb-6 text-green-200">
               Successfully minted your Boo NFT! 👻
               {account && !watchAssetSuccess && (
-                <button 
-                  onClick={async () => {
-                    try {
-                      if (account.watchAsset) {
-                        const success = await account.watchAsset({
-                          type: 'ERC721',
-                          options: {
-                            address: NFT_CONTRACT_ADDRESS,
-                            tokenId: (claimedSupply && claimedSupply > 0n) ? 
-                                     (claimedSupply - 1n).toString() : '0',
-                          }
-                        });
-                        setWatchAssetSuccess(success);
-                      } else {
-                        setError('Your wallet does not support adding tokens');
+                <div className="mt-3 flex justify-center">
+                  <button 
+                    onClick={async () => {
+                      try {
+                        if (account.watchAsset) {
+                          const success = await account.watchAsset({
+                            type: 'ERC20',
+                            options: {
+                              address: NFT_CONTRACT_ADDRESS,
+                              symbol: 'BOO',
+                              decimals: 0
+                              // 注意：由于类型限制，我们无法直接添加 tokenId
+                              // 但这样至少可以将合约添加到钱包中
+                            }
+                          });
+                          setWatchAssetSuccess(success);
+                        } else {
+                          setError('Your wallet does not support adding tokens');
+                        }
+                      } catch (err) {
+                        console.error('Watch asset error:', err);
+                        setError(typeof err === 'string' ? err : 
+                                err instanceof Error ? err.message : 'Failed to add NFT to wallet');
                       }
-                    } catch (err) {
-                      console.error('Watch asset error:', err);
-                      setError(typeof err === 'string' ? err : 
-                              err instanceof Error ? err.message : 'Failed to add NFT to wallet');
-                    }
-                  }}
-                  className="mt-2 block w-full text-center py-2 px-4 bg-green-700 hover:bg-green-600 rounded transition-colors text-white text-sm"
-                >
-                  Add NFT to Wallet
-                </button>
+                    }}
+                    className="py-2 px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-lg transition-colors text-white text-sm font-medium shadow-lg"
+                  >
+                    Add NFT to Wallet
+                  </button>
+                </div>
               )}
               {watchAssetSuccess && (
-                <p className="mt-2 text-green-200 text-sm">✅ NFT added to your wallet</p>
+                <div className="mt-3 flex justify-center">
+                  <p className="py-2 px-4 bg-green-800/50 rounded-lg text-green-200 text-sm flex items-center">
+                    <span className="mr-1">✅</span> NFT added to your wallet
+                  </p>
+                </div>
               )}
             </div>
           )}
 
-          <TransactionButton
-            transaction={() => {
-              if (!account) {
-                throw new Error("Please connect your wallet");
-              }
+          <div className="flex justify-center">
+            {!account ? (
+              <div className="py-3 px-8 text-lg font-bold text-white rounded-lg shadow-lg bg-zinc-700 cursor-not-allowed">
+                Connect Wallet to Mint
+              </div>
+            ) : isLoadingBalance ? (
+              <div className="py-3 px-8 text-lg font-bold text-white rounded-lg shadow-lg bg-zinc-700">
+                Checking Wallet...
+              </div>
+            ) : walletBalance !== undefined && walletBalance >= 1n ? (
+              <div className="py-3 px-8 text-lg font-bold text-white rounded-lg shadow-lg bg-zinc-700 cursor-not-allowed">
+                You Already Claimed an NFT
+              </div>
+            ) : (
+              <TransactionButton
+                  className="py-3 px-8 text-lg font-bold text-white rounded-lg shadow-lg bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 transition-all duration-200"
+                  transaction={async () => {
+                    if (!account) {
+                      throw new Error("Please connect your wallet");
+                    }
 
-              if (walletBalance !== undefined && walletBalance >= 1n) {
-                throw new Error("You have already claimed a Boo NFT");
-              }
-              
-              return claimTo({
-                contract: contract,
-                to: account.address,
-                quantity: 1n,
-              });
-            }}
-            onTransactionError={(err) => {
-              console.error("Transaction error:", err);
-              setError(typeof err === "string" ? err : err.message || "Failed to mint NFT");
-              setMintSuccess(false);
-            }}
-            onTransactionSubmitted={() => {
-              setError(null);
-            }}
-            onTransactionConfirmed={() => {
-              setMintSuccess(true);
-              setError(null);
-            }}
-            className={`w-full py-4 text-lg font-bold text-white rounded-lg flex items-center justify-center shadow-lg ${!account || (walletBalance !== undefined && walletBalance >= 1n)
-              ? "bg-zinc-700 cursor-not-allowed"
-              : "bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 transition-all duration-200"}`}
-            isDisabled={!account || (walletBalance !== undefined && walletBalance >= 1n)}
-          >
-            {!account
-              ? "Connect Wallet to Mint"
-              : isLoadingBalance
-              ? "Checking Wallet..."
-              : walletBalance !== undefined && walletBalance >= 1n
-              ? "You Already Claimed an NFT"
-              : `Mint Boo NFT for ${getPrice()} MON`}
-          </TransactionButton>
+                    if (walletBalance !== undefined && walletBalance >= 1n) {
+                      throw new Error("You have already claimed a Boo NFT");
+                    }
+                    
+                    try {
+                      setError(null);
+                      const result = await claimTo({
+                        contract: contract,
+                        to: account.address,
+                        quantity: 1n,
+                      });
+                      
+                      // 处理成功状态
+                      setMintSuccess(true);
+                      setError(null);
+                      
+                      return result;
+                    } catch (err) {
+                      // 处理错误状态
+                      console.error("Transaction error:", err);
+                      setError(typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to mint NFT");
+                      setMintSuccess(false);
+                      throw err; // 重新抛出错误，让 TransactionButton 知道交易失败
+                    }
+                  }}
+                >
+                  Mint Boo NFT for {getPrice()} MON
+                </TransactionButton>
+            )}
+          </div>
 
           <div className="mt-6 text-center text-zinc-500 text-sm">
             <p>
               Contract: <a href={`https://testnet.monadexplorer.com/address/${NFT_CONTRACT_ADDRESS}`} target="_blank" rel="noopener noreferrer" className="underline hover:text-zinc-400 transition-colors">{`${NFT_CONTRACT_ADDRESS.slice(0, 6)}...${NFT_CONTRACT_ADDRESS.slice(-4)}`}</a>
             </p>
           </div>
+          
+
         </div>
       </div>
     </main>
